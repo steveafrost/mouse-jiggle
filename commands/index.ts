@@ -1,5 +1,3 @@
-import { getLocale } from "@raycast/api";
-
 export default function CommandIndex() {
   return [
     {
