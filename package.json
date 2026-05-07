@@ -1,5 +1,5 @@
 {
-  "$schema": "https://www.raycast.com/schema.json",
+  "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "mouse-jiggle",
   "title": "Mouse Jiggle",
   "description": "Move the mouse cursor randomly to prevent sleep or keep status active",
@@ -8,5 +8,14 @@
   "version": "1.0.0",
   "author": "steveafrost",
   "license": "MIT",
-  "platforms": ["macos"]
+  "platforms": ["macos"],
+  "commands": [
+    {
+      "name": "jiggle",
+      "title": "Jiggle Mouse",
+      "description": "Move the mouse cursor randomly to prevent sleep",
+      "mode": "silent",
+      "script": "./src/jiggle.sh"
+    }
+  ]
 }
