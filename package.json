@@ -9,6 +9,14 @@
   "author": "steveafrost",
   "license": "MIT",
   "platforms": ["macos"],
+  "commands": [
+    {
+      "name": "jiggle",
+      "title": "Jiggle Mouse",
+      "description": "Move the mouse cursor randomly to prevent sleep or keep status active",
+      "mode": "silent"
+    }
+  ],
   "scripts": {
     "build": "ray build -e dist",
     "dev": "ray develop",
