@@ -8,12 +8,5 @@
   "version": "1.0.0",
   "author": "steveafrost",
   "license": "MIT",
-  "scripts": [
-    {
-      "name": "Jiggle Mouse",
-      "script": "./src/index.sh",
-      "type": "script"
-    }
-  ],
   "platforms": ["macos"]
 }

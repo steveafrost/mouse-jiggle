@@ -1,5 +1,11 @@
 #!/bin/zsh
 
+# @raycast.schemaVersion 1
+# @raycast.title Mouse Jiggle
+# @raycast.description Move the mouse cursor randomly to prevent sleep or keep status active
+# @raycast.mode silent
+# @raycast.packageName Mouse Jiggle
+
 # Mouse Jiggle - Raycast Custom Command
 # Moves the mouse randomly to prevent sleep or keep status active
 
