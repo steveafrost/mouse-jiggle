@@ -51,7 +51,7 @@ Create `~/Library/LaunchAgents/com.user.mousejiggle.plist`:
     <key>ProgramArguments</key>
     <array>
         <string>/bin/zsh</string>
-        <string>/path/to/mouse-jiggle/src/index.sh</string>
+        <string>/path/to/mouse-jiggle/commands/jiggle.ts</string>
     </array>
     <key>StartInterval</key>
     <integer>300</integer>

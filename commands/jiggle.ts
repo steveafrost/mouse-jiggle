@@ -1,8 +1,13 @@
 import { LaunchProps, showToast, Toast } from "@raycast/api";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { writeFileSync, unlinkSync, mkdtempSync } from "fs";
+import { join } from "path";
 
 const execAsync = promisify(exec);
+
+// Cache cliclick availability so we don't exec `which` on every invocation
+let _hasCliclick: boolean | null = null;
 
 interface JiggleArguments {
   intensity?: string;
@@ -22,7 +27,6 @@ export default async function JiggleMouse({ arguments: args }: LaunchProps<{ arg
       ]);
     }
 
-    // Check for cliclick
     const hasCliclick = await checkCliclick();
 
     if (hasCliclick) {
@@ -32,9 +36,21 @@ export default async function JiggleMouse({ arguments: args }: LaunchProps<{ arg
         await new Promise((r) => setTimeout(r, 50));
       }
     } else {
-      // Use Python fallback
-      const pythonScript = generatePythonScript(offsets);
-      await execAsync(`/usr/bin/python3 -c '${pythonScript}'`);
+      // Use Python fallback — write to temp file to avoid shell escaping issues
+      const tmpDir = mkdtempSync("/tmp/mouse-jiggle-");
+      const scriptPath = join(tmpDir, "jiggle.py");
+      try {
+        writeFileSync(scriptPath, generatePythonScript(offsets), "utf-8");
+        await execAsync(`/usr/bin/python3 "${scriptPath}"`);
+      } finally {
+        try {
+          unlinkSync(scriptPath);
+          // rmdir isn't great but we can use exec for that
+          execAsync(`/bin/rm -rf "${tmpDir}"`).catch(() => {});
+        } catch {
+          // best-effort cleanup
+        }
+      }
     }
 
     await showToast({
@@ -52,37 +68,51 @@ export default async function JiggleMouse({ arguments: args }: LaunchProps<{ arg
 }
 
 async function checkCliclick(): Promise<boolean> {
+  if (_hasCliclick !== null) {
+    return _hasCliclick;
+  }
   try {
     await execAsync("which cliclick");
-    return true;
+    _hasCliclick = true;
   } catch {
-    return false;
+    _hasCliclick = false;
   }
+  return _hasCliclick;
 }
 
 function generatePythonScript(offsets: [number, number][]): string {
-  const moves = offsets.map(([dx, dy]) => `move_mouse(${dx}, ${dy})`).join("\n    ");
+  const moves = offsets.map(([dx, dy]) => `    move_mouse(${dx}, ${dy})`).join("\n");
 
-  return `
+  return `#!/usr/bin/env python3
 import Quartz
 import time
+import sys
+
 
 def move_mouse(dx, dy):
-    current = Quartz.CGEventGetCurrentEvent()
-    loc = Quartz.CGEventGetLocation(current)
-    from AppKit import NSScreen
-    main_screen = NSScreen.mainScreen()
-    if main_screen:
-        frame = main_screen.frame()
-        screen_height = frame.size.height
-        current_x = loc.x
-        current_y = screen_height - loc.y
-        new_x = current_x + dx
-        new_y = current_y - dy
-        new_loc = Quartz.CGPoint(new_x, new_y)
-        event = Quartz.CGEventCreateMouseEvent(None, Quartz.kCGEventMouseMoved, new_loc, Quartz.kCGMouseButtonLeft)
-        if event:
-            Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+    """Move the mouse cursor by (dx, dy) pixels relative to current position."""
+    event = Quartz.CGEventCreate(None)
+    current = Quartz.CGEventGetLocation(event)
+    Quartz.CFRelease(event)
+
+    # Get main display height for coordinate flip
+    display_id = Quartz.CGMainDisplayID()
+    bounds = Quartz.CGDisplayBounds(display_id)
+    screen_height = bounds.size.height
+
+    current_x = current.x
+    current_y = screen_height - current.y
+    new_x = current_x + dx
+    new_y = current_y - dy
+
+    new_loc = Quartz.CGPoint(new_x, new_y)
+    move_event = Quartz.CGEventCreateMouseEvent(
+        None, Quartz.kCGEventMouseMoved, new_loc, Quartz.kCGMouseButtonLeft
+    )
+    if move_event:
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, move_event)
+        Quartz.CFRelease(move_event)
+
 
 ${moves}
 `;
